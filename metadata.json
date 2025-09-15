@@ -1,0 +1,5 @@
+{
+  "name": "Despensa Virtual Inteligente",
+  "description": "An intelligent virtual pantry application that captures receipts using AI, tracks inventory, and provides alerts for item replenishment, built with React and the Gemini API.",
+  "requestFramePermissions": []
+}
