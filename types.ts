@@ -4,16 +4,29 @@ export enum Priority {
   Low = 'Baixa',
 }
 
-export interface PantryItem {
+// Represents a single batch of an item with a specific expiry date.
+export interface PantryItemInstance {
   id: string;
-  name: string;
   quantity: number;
   expiryDate: string; // YYYY-MM-DD
+}
+
+// Represents a group of the same item, which can have multiple batches/instances.
+export interface PantryItemGroup {
+  id: string;
+  name: string;
+  instances: PantryItemInstance[];
   priority: Priority;
 }
 
-export type NewPantryItem = Omit<PantryItem, 'id' | 'priority'>;
+// Represents a new item being added from a form or receipt scan.
+export type NewPantryItem = {
+  name: string;
+  quantity: number;
+  expiryDate: string;
+};
 
+// Data structure returned from the AI service.
 export interface AIParsedItem {
   name: string; // Literal name from receipt
   standardizedName: string; // Clean, translated name
@@ -23,5 +36,6 @@ export interface AIParsedItem {
 
 export enum AppView {
     List = 'list',
-    AddReceipt = 'addReceipt'
+    AddReceipt = 'addReceipt',
+    AddManual = 'addManual'
 }

@@ -35,6 +35,21 @@
       .animate-fade-in-up {
         animation: fade-in-up 0.3s ease-out forwards;
       }
+      
+      /* FAB animations */
+      @keyframes fab-scale-in {
+        from {
+          transform: scale(0);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .fab-option {
+        animation: fab-scale-in 0.2s ease-out forwards;
+      }
     </style>
   <script type="importmap">
 {
