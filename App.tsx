@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { PantryItemGroup, PantryItemInstance, NewPantryItem, Priority } from './types';
 import { PantryList } from './components/PantryList';
+import { ShoppingList } from './components/ShoppingList';
+import { TabNavigation } from './components/TabNavigation';
 import { AddReceiptView } from './components/AddReceiptView';
 import { ManualAddItemView } from './components/ManualAddItemView';
 import { Header } from './components/Header';
@@ -18,8 +20,36 @@ const getSoonestExpiryDate = (group: PantryItemGroup): string => {
 
 
 const App: React.FC = () => {
-  const [view, setView] = useState<AppView>(AppView.List);
+  const [view, setView] = useState<AppView>(AppView.Pantry);
   const [items, setItems] = useState<PantryItemGroup[]>([]);
+
+  // Count shopping list suggestions
+  const shoppingListCount = useMemo(() => {
+    let suggestions = 0;
+    const now = new Date();
+
+    items.forEach(group => {
+      let totalQuantity = 0;
+      let hasExpiredItems = false;
+      
+      group.instances.forEach(instance => {
+        totalQuantity += instance.quantity;
+        const expiryDate = new Date(instance.expiryDate);
+        const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysRemaining < 0) hasExpiredItems = true;
+      });
+
+      // Count suggestions for low stock or expired items
+      if (totalQuantity <= 2 && totalQuantity > 0) suggestions++;
+      if (hasExpiredItems) suggestions++;
+    });
+
+    // Add base suggestions if needed
+    if (suggestions < 2) suggestions += 2;
+    
+    return suggestions;
+  }, [items]);
 
   useEffect(() => {
     try {
@@ -86,7 +116,7 @@ const App: React.FC = () => {
     });
     
     saveItems(updatedPantry);
-    setView(AppView.List);
+    setView(AppView.Pantry);
   };
 
   const handleManualAddItem = (newItem: NewPantryItem & { priority: Priority }) => {
@@ -134,7 +164,7 @@ const App: React.FC = () => {
   
   const renderView = () => {
     switch(view) {
-      case AppView.List:
+      case AppView.Pantry:
         return (
           <PantryList
             items={items}
@@ -145,18 +175,25 @@ const App: React.FC = () => {
             onNavigate={setView}
           />
         );
+      case AppView.Shopping:
+        return (
+          <ShoppingList
+            items={items}
+            onNavigate={setView}
+          />
+        );
       case AppView.AddReceipt:
         return (
           <AddReceiptView
             onAddItems={items => handleAddItems(items)}
-            onBack={() => setView(AppView.List)}
+            onBack={() => setView(AppView.Pantry)}
           />
         );
       case AppView.AddManual:
         return (
           <ManualAddItemView
             onAddItem={handleManualAddItem}
-            onBack={() => setView(AppView.List)}
+            onBack={() => setView(AppView.Pantry)}
           />
         );
       default:
@@ -165,9 +202,17 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 font-sans text-slate-800">
       <Header />
-      <main className="p-4 mx-auto max-w-4xl">
+      <main className="p-4 mx-auto max-w-7xl">
+        {(view === AppView.Pantry || view === AppView.Shopping) && (
+          <TabNavigation 
+            activeView={view}
+            onViewChange={setView}
+            pantryItemCount={items.length}
+            shoppingItemCount={shoppingListCount}
+          />
+        )}
         {renderView()}
       </main>
     </div>

@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { parseReceipt } from '../services/geminiService';
+import { parseReceiptWithMistral } from '../services/mistralOCRService';
+import { parseReceiptWithOpenAI } from '../services/openaiService';
 import type { NewPantryItem, AIParsedItem } from '../types';
 import { ConfirmationStep } from './ConfirmationStep';
 import { Spinner } from './ui/Spinner';
@@ -25,6 +27,7 @@ export const AddReceiptView: React.FC<AddReceiptViewProps> = ({ onAddItems, onBa
   const [error, setError] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [useOCR, setUseOCR] = useState<'gemini' | 'mistral' | 'openai'>('openai');
 
   const processImageFile = useCallback(async (file: File) => {
     setState('loading');
@@ -38,7 +41,14 @@ export const AddReceiptView: React.FC<AddReceiptViewProps> = ({ onAddItems, onBa
     }, 2500);
 
     try {
-      const items = await parseReceipt(file);
+      let items: AIParsedItem[];
+      if (useOCR === 'gemini') {
+        items = await parseReceipt(file);
+      } else if (useOCR === 'mistral') {
+        items = await parseReceiptWithMistral(file);
+      } else {
+        items = await parseReceiptWithOpenAI(file);
+      }
       setParsedItems(items);
       setState('confirm');
     } catch (err) {
@@ -47,7 +57,7 @@ export const AddReceiptView: React.FC<AddReceiptViewProps> = ({ onAddItems, onBa
     } finally {
         clearInterval(intervalId);
     }
-  }, []);
+  }, [useOCR]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -73,6 +83,46 @@ export const AddReceiptView: React.FC<AddReceiptViewProps> = ({ onAddItems, onBa
         {state === 'idle' && (
           <div>
             <p className="text-slate-600 mb-4">Envie uma foto clara da sua nota fiscal. A nossa I.A. irá extrair os itens para você.</p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Serviço de OCR:</label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="ocr-service"
+                    value="openai"
+                    checked={useOCR === 'openai'}
+                    onChange={(e) => setUseOCR(e.target.value as 'gemini' | 'mistral' | 'openai')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">OpenAI Vision (Recomendado)</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="ocr-service"
+                    value="gemini"
+                    checked={useOCR === 'gemini'}
+                    onChange={(e) => setUseOCR(e.target.value as 'gemini' | 'mistral' | 'openai')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Google Gemini</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="ocr-service"
+                    value="mistral"
+                    checked={useOCR === 'mistral'}
+                    onChange={(e) => setUseOCR(e.target.value as 'gemini' | 'mistral' | 'openai')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Mistral OCR</span>
+                </label>
+              </div>
+            </div>
+
             <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center space-y-4">
                 <label className="block">
                     <span className="sr-only">Escolha um arquivo</span>

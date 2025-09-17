@@ -34,8 +34,29 @@ export interface AIParsedItem {
   expiryDate: string;
 }
 
+// Represents a shopping list item suggestion
+export interface ShoppingListItem {
+  id: string;
+  name: string;
+  suggestedQuantity: number;
+  priority: Priority;
+  reason: 'low_stock' | 'expired' | 'consumption_pattern' | 'manual';
+  lastConsumed?: string; // YYYY-MM-DD
+  estimatedNeed?: number; // Days until needed
+}
+
+// Consumer consumption tracking for future smart suggestions
+export interface ConsumptionRecord {
+  itemName: string;
+  consumedQuantity: number;
+  consumedDate: string; // YYYY-MM-DD
+  remainingQuantity: number;
+}
+
+// Main navigation views
 export enum AppView {
-    List = 'list',
+    Pantry = 'pantry',
+    Shopping = 'shopping', 
     AddReceipt = 'addReceipt',
     AddManual = 'addManual'
 }

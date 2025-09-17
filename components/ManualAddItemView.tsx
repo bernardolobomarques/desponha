@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { NewPantryItem } from '../types';
 import { Priority } from '../types';
+import { standardizeProductName } from '../services/openaiService';
 
 interface ManualAddItemViewProps {
   onAddItem: (item: NewPantryItem & { priority: Priority }) => void;
@@ -9,16 +10,40 @@ interface ManualAddItemViewProps {
 
 export const ManualAddItemView: React.FC<ManualAddItemViewProps> = ({ onAddItem, onBack }) => {
     const [name, setName] = useState('');
+    const [standardizedName, setStandardizedName] = useState('');
     const [quantity, setQuantity] = useState('1');
     const [expiryDate, setExpiryDate] = useState('');
     const [priority, setPriority] = useState<Priority>(Priority.Medium);
+    const [isStandardizing, setIsStandardizing] = useState(false);
+
+    const handleNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newName = e.target.value;
+        setName(newName);
+        
+        // Auto-padronizar quando o usuário parar de digitar
+        if (newName.trim().length > 2) {
+            setIsStandardizing(true);
+            try {
+                const standardized = await standardizeProductName(newName);
+                setStandardizedName(standardized);
+            } catch (error) {
+                setStandardizedName(newName);
+            } finally {
+                setIsStandardizing(false);
+            }
+        } else {
+            setStandardizedName('');
+        }
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const finalQuantity = parseFloat(quantity.replace(',', '.')) || 0;
-        if (name.trim() && finalQuantity > 0 && expiryDate) {
+        const finalName = standardizedName || name;
+        
+        if (finalName.trim() && finalQuantity > 0 && expiryDate) {
             onAddItem({
-                name: name.trim(),
+                name: finalName.trim(),
                 quantity: finalQuantity,
                 expiryDate,
                 priority,
@@ -42,7 +67,38 @@ export const ManualAddItemView: React.FC<ManualAddItemViewProps> = ({ onAddItem,
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="name" className="block text-sm font-medium text-slate-700">Nome do Item</label>
-                    <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+                    <input 
+                        type="text" 
+                        id="name" 
+                        value={name} 
+                        onChange={handleNameChange} 
+                        required 
+                        className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" 
+                        placeholder="Ex: ag mineral, refrig coca, biscoito..."
+                    />
+                    {isStandardizing && (
+                        <div className="mt-2 text-sm text-blue-600 flex items-center gap-2">
+                            <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                            Padronizando nome...
+                        </div>
+                    )}
+                    {standardizedName && standardizedName !== name && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                            <span className="text-sm text-green-800">
+                                <strong>Sugestão:</strong> {standardizedName}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setName(standardizedName);
+                                    setStandardizedName('');
+                                }}
+                                className="ml-2 text-xs text-green-600 underline hover:text-green-800"
+                            >
+                                Usar sugestão
+                            </button>
+                        </div>
+                    )}
                 </div>
                 <div>
                     <label htmlFor="quantity" className="block text-sm font-medium text-slate-700">Quantidade</label>

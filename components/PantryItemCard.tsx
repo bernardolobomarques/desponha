@@ -12,9 +12,23 @@ interface PantryItemCardProps {
 }
 
 const priorityColors = {
-  [Priority.High]: 'border-red-500 bg-red-50',
-  [Priority.Medium]: 'border-yellow-500 bg-yellow-50',
-  [Priority.Low]: 'border-green-500 bg-green-50',
+  [Priority.High]: 'border-red-500 bg-gradient-to-br from-red-50 to-red-100',
+  [Priority.Medium]: 'border-yellow-500 bg-gradient-to-br from-yellow-50 to-yellow-100',
+  [Priority.Low]: 'border-green-500 bg-gradient-to-br from-green-50 to-green-100',
+};
+
+const PriorityBadge: React.FC<{ priority: Priority }> = ({ priority }) => {
+  const colors = {
+    'Alta': 'bg-red-500 text-white',
+    'Média': 'bg-yellow-500 text-white', 
+    'Baixa': 'bg-green-500 text-white'
+  };
+  
+  return (
+    <span className={`px-2 py-1 text-xs font-bold rounded-full ${colors[priority]}`}>
+      {priority}
+    </span>
+  );
 };
 
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>;
@@ -61,31 +75,129 @@ const InstanceRow: React.FC<{
 
     const daysRemaining = getDaysRemaining(instance.expiryDate);
     const isExpired = daysRemaining < 0;
-
-    if (isEditing) {
-        return (
-            <div className="flex items-center gap-2 p-2 bg-slate-50 rounded">
-                <input type="text" inputMode="decimal" value={quantityInput} onChange={handleQuantityInputChange} className="w-1/4 p-1 border rounded text-sm"/>
-                <input type="date" value={editedInstance.expiryDate} onChange={e => setEditedInstance({...editedInstance, expiryDate: e.target.value})} className="flex-grow p-1 border rounded text-sm"/>
-                <button onClick={handleSave} className="text-green-600 hover:text-green-700"><SaveIcon /></button>
-                <button onClick={() => setIsEditing(false)} className="text-slate-500 hover:text-slate-700"><CancelIcon /></button>
-            </div>
-        );
-    }
+    const isExpiringSoon = daysRemaining <= 3 && daysRemaining >= 0;
     
+    const handleCancel = () => {
+        setEditedInstance(instance);
+        setQuantityInput(formatQuantity(instance.quantity));
+        setIsEditing(false);
+    };
+    
+    const getExpiryStatus = () => {
+        if (isExpired) return { 
+            text: `Vencido há ${Math.abs(daysRemaining)} ${Math.abs(daysRemaining) === 1 ? 'dia' : 'dias'}`, 
+            color: 'text-red-700 bg-red-100 border-red-200',
+            icon: '⚠️'
+        };
+        if (isExpiringSoon) return { 
+            text: `${daysRemaining} ${daysRemaining === 1 ? 'dia' : 'dias'} restante${daysRemaining === 1 ? '' : 's'}`, 
+            color: 'text-orange-700 bg-orange-100 border-orange-200',
+            icon: '⏰'
+        };
+        if (daysRemaining <= 7) return { 
+            text: `${daysRemaining} dias`, 
+            color: 'text-yellow-700 bg-yellow-100 border-yellow-200',
+            icon: '📅'
+        };
+        return { 
+            text: `${daysRemaining} dias`, 
+            color: 'text-green-700 bg-green-100 border-green-200',
+            icon: '✅'
+        };
+    };
+    
+    const expiryStatus = getExpiryStatus();
+
     return (
-        <div className="flex justify-between items-center p-2 group hover:bg-slate-50 rounded">
-            <div className="text-sm text-slate-700">
-                <span>Qtd: {formatQuantity(instance.quantity)}</span>
-                <span className="mx-2">|</span>
-                <span className={isExpired ? 'text-red-600 font-semibold' : ''}>
-                    {isExpired ? `Venceu há ${Math.abs(daysRemaining)} dias` : `Vence em ${daysRemaining} dias`}
-                </span>
-            </div>
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => setIsEditing(true)} className="text-blue-500 hover:text-blue-700"><EditIcon /></button>
-                <button onClick={() => onDeleteInstance(groupId, instance.id)} className="text-red-500 hover:text-red-700"><DeleteIcon /></button>
-            </div>
+        <div className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all hover:shadow-md ${
+            isExpired ? 'bg-red-50 border-red-200' : 
+            isExpiringSoon ? 'bg-orange-50 border-orange-200' : 
+            'bg-white border-gray-200 hover:border-gray-300'
+        }`}>
+            {isEditing ? (
+                <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700 min-w-[40px]">Qtd:</span>
+                        <input
+                            type="text"
+                            inputMode="decimal"
+                            value={quantityInput}
+                            onChange={handleQuantityInputChange}
+                            className="w-24 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700">Vence em:</span>
+                        <input
+                            type="date"
+                            value={editedInstance.expiryDate}
+                            onChange={e => setEditedInstance({...editedInstance, expiryDate: e.target.value})}
+                            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+                    <div className="flex gap-2 ml-auto">
+                        <button 
+                            onClick={handleSave} 
+                            className="flex items-center gap-1 px-3 py-2 text-sm text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+                        >
+                            <SaveIcon />
+                            Salvar
+                        </button>
+                        <button 
+                            onClick={handleCancel} 
+                            className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                            <CancelIcon />
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <div className="flex items-center gap-4 flex-1">
+                        <div className="flex items-center gap-3">
+                            <div className="text-3xl font-bold text-gray-900">
+                                {formatQuantity(instance.quantity)}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                                {instance.quantity === 1 ? 'unidade' : 'unidades'}
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg">{expiryStatus.icon}</span>
+                            <div className={`px-3 py-1 text-sm font-medium rounded-full border ${expiryStatus.color}`}>
+                                {expiryStatus.text}
+                            </div>
+                        </div>
+                        
+                        <div className="text-sm text-gray-600 font-medium">
+                            {new Date(instance.expiryDate).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            })}
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => setIsEditing(true)} 
+                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                            title="Editar item"
+                        >
+                            <EditIcon />
+                        </button>
+                        <button 
+                            onClick={() => onDeleteInstance(groupId, instance.id)} 
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title="Excluir item"
+                        >
+                            <DeleteIcon />
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     )
 }
@@ -117,35 +229,107 @@ export const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onUpdateGr
   const isExpiringSoon = soonestExpiryDays <= 3 && soonestExpiryDays >= 0;
   const isExpired = soonestExpiryDays < 0;
   
-  const baseClasses = "bg-white p-4 rounded-lg shadow-sm border-l-4 transition-shadow hover:shadow-md flex flex-col";
+  const getTotalQuantity = () => {
+    return item.instances.reduce((total, instance) => total + instance.quantity, 0);
+  };
+  
+  const baseClasses = "bg-white p-6 rounded-xl shadow-lg border transition-all hover:shadow-xl";
   const priorityClass = priorityColors[item.priority];
-  const expiringClass = isExpiringSoon ? 'bg-orange-50 border-orange-500' : isExpired ? 'bg-red-100 border-red-500 opacity-90' : priorityClass;
+  const expiringClass = isExpiringSoon ? 'border-orange-400 bg-gradient-to-br from-orange-50 to-orange-100' : 
+                       isExpired ? 'border-red-400 bg-gradient-to-br from-red-50 to-red-100' : 
+                       priorityClass;
 
   return (
     <>
       <div className={`${baseClasses} ${expiringClass}`}>
-        {isEditingGroup ? (
-             <div className="space-y-2 mb-2">
-                 <input type="text" value={editedGroup.name} onChange={e => setEditedGroup({...editedGroup, name: e.target.value})} className="w-full p-2 border rounded font-bold text-lg"/>
-                 <select value={editedGroup.priority} onChange={e => setEditedGroup({...editedGroup, priority: e.target.value as Priority})} className="w-full p-2 border rounded">
-                     {Object.values(Priority).map(p => <option key={p} value={p}>{p}</option>)}
-                 </select>
-                 <div className="flex justify-end gap-2">
-                     <button onClick={() => setIsEditingGroup(false)} className="px-3 py-1 rounded text-sm text-slate-600 bg-slate-100 hover:bg-slate-200">Cancelar</button>
-                     <button onClick={handleSaveGroup} className="px-3 py-1 rounded text-sm text-white bg-blue-500 hover:bg-blue-600">Salvar</button>
-                 </div>
-             </div>
-        ) : (
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-bold text-lg text-slate-800 pr-2">{item.name}</h3>
-              <div className="flex items-center gap-2 text-slate-500">
-                <button onClick={() => setIsEditingGroup(true)} className="hover:text-blue-500"><EditIcon /></button>
-                <button onClick={() => setIsDeleteModalOpen(true)} className="hover:text-red-500"><DeleteIcon /></button>
+        {/* Header Section */}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            {isEditingGroup ? (
+              <div className="space-y-3">
+                <input 
+                  type="text" 
+                  value={editedGroup.name} 
+                  onChange={e => setEditedGroup({...editedGroup, name: e.target.value})} 
+                  className="w-full p-3 border border-gray-300 rounded-lg font-bold text-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Nome do item"
+                />
+                <select 
+                  value={editedGroup.priority} 
+                  onChange={e => setEditedGroup({...editedGroup, priority: e.target.value as Priority})} 
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {Object.values(Priority).map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <div className="flex justify-end gap-3">
+                  <button 
+                    onClick={() => setIsEditingGroup(false)} 
+                    className="px-4 py-2 rounded-lg text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleSaveGroup} 
+                    className="px-4 py-2 rounded-lg text-sm text-white bg-blue-500 hover:bg-blue-600 transition-colors"
+                  >
+                    Salvar
+                  </button>
+                </div>
               </div>
-            </div>
-        )}
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-2xl text-gray-900 mr-4">{item.name}</h3>
+                  <div className="flex items-center gap-3">
+                    <PriorityBadge priority={item.priority} />
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setIsEditingGroup(true)} 
+                        className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                        title="Editar grupo"
+                      >
+                        <EditIcon />
+                      </button>
+                      <button 
+                        onClick={() => setIsDeleteModalOpen(true)} 
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        title="Excluir grupo"
+                      >
+                        <DeleteIcon />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Summary Stats */}
+                <div className="mt-3 flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold text-lg text-gray-900">{formatQuantity(getTotalQuantity())}</span>
+                    <span>{getTotalQuantity() === 1 ? 'unidade' : 'unidades'} total</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold">{item.instances.length}</span>
+                    <span>{item.instances.length === 1 ? 'lote' : 'lotes'}</span>
+                  </div>
+                  {(isExpired || isExpiringSoon) && (
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      isExpired ? 'bg-red-200 text-red-800' : 'bg-orange-200 text-orange-800'
+                    }`}>
+                      {isExpired ? '⚠️ Itens vencidos' : '⏰ Vence em breve'}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
         
-        <div className="flex-grow space-y-1 border-t border-slate-200/80 pt-2">
+        {/* Instances Section */}
+        {!isEditingGroup && (
+          <div className="space-y-3 pt-4 border-t border-gray-200">
+            <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">
+              Lotes individuais
+            </h4>
             {item.instances
                 .sort((a,b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime())
                 .map(instance => (
@@ -157,7 +341,8 @@ export const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onUpdateGr
                         onDeleteInstance={onDeleteInstance}
                     />
             ))}
-        </div>
+          </div>
+        )}
       </div>
       <ConfirmationModal
         isOpen={isDeleteModalOpen}

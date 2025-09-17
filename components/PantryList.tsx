@@ -30,16 +30,33 @@ const getSoonestDaysRemaining = (group: PantryItemGroup): number => {
 };
 
 const EmptyState: React.FC<{ onNavigate: (view: AppView) => void }> = ({ onNavigate }) => (
-    <div className="text-center py-20 px-6 bg-white rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-slate-700">Sua despensa está vazia!</h2>
-        <p className="text-slate-500 mt-2 mb-6">Comece adicionando itens a partir de uma nota fiscal ou manualmente.</p>
-        <button
-          onClick={() => onNavigate(AppView.AddReceipt)}
-          className="inline-flex items-center gap-2 bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-colors shadow-lg"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Adicionar Itens
-        </button>
+    <div className="text-center py-20 px-6 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl shadow-lg border border-blue-200">
+        <div className="text-8xl mb-6">🏠</div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">Sua despensa está vazia!</h2>
+        <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
+            Comece adicionando itens através da câmera para escanear notas fiscais ou adicione manualmente.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => onNavigate(AppView.AddReceipt)}
+              className="inline-flex items-center gap-3 bg-blue-600 text-white font-bold py-4 px-8 rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Escanear Nota Fiscal
+            </button>
+            <button
+              onClick={() => onNavigate(AppView.AddManual)}
+              className="inline-flex items-center gap-3 bg-gray-100 text-gray-700 font-semibold py-4 px-8 rounded-xl hover:bg-gray-200 transition-all border-2 border-gray-200 hover:border-gray-300"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Adicionar Manualmente
+            </button>
+        </div>
     </div>
 );
 
@@ -89,19 +106,39 @@ export const PantryList: React.FC<PantryListProps> = ({ items, onUpdateGroup, on
         return <EmptyState onNavigate={onNavigate} />;
     }
 
-    const renderItemGroup = (title: string, groupItems: PantryItemGroup[], colorClass: string, sectionKey: string) => {
+    const renderItemGroup = (title: string, groupItems: PantryItemGroup[], colorClass: string, sectionKey: string, icon: string) => {
         if (groupItems.length === 0) return null;
         const isCollapsed = collapsedSections[sectionKey];
+        
         return (
             <div className="mb-8">
-                <button onClick={() => toggleSection(sectionKey)} className="w-full text-left">
-                    <div className="flex justify-between items-center mb-4 border-b-2 pb-2" >
-                        <h2 className={`text-xl font-bold ${colorClass}`}>{title} ({groupItems.length})</h2>
-                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-transform ${isCollapsed ? 'rotate-0' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                <button 
+                    onClick={() => toggleSection(sectionKey)} 
+                    className="w-full text-left group hover:bg-gray-50 rounded-lg p-4 transition-colors"
+                >
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl">{icon}</span>
+                            <h2 className={`text-xl font-bold ${colorClass}`}>
+                                {title}
+                            </h2>
+                            <span className={`px-3 py-1 text-sm font-bold rounded-full bg-gray-100 ${colorClass}`}>
+                                {groupItems.length}
+                            </span>
+                        </div>
+                        <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className={`h-6 w-6 transition-transform group-hover:scale-110 ${isCollapsed ? 'rotate-0' : 'rotate-180'} ${colorClass}`} 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
                     </div>
                 </button>
                 {!isCollapsed && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                         {groupItems.map(item => (
                             <PantryItemCard 
                                 key={item.id} 
@@ -118,40 +155,67 @@ export const PantryList: React.FC<PantryListProps> = ({ items, onUpdateGroup, on
         )
     }
 
-    const FilterButton: React.FC<{ filterType: FilterType; text: string; }> = ({ filterType, text }) => (
+    const FilterButton: React.FC<{ filterType: FilterType; text: string; count?: number }> = ({ filterType, text, count }) => (
         <button
             onClick={() => setActiveFilter(filterType)}
-            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeFilter === filterType ? 'bg-blue-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all transform hover:scale-105 ${
+                activeFilter === filterType 
+                    ? 'bg-blue-600 text-white shadow-lg' 
+                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+            }`}
         >
             {text}
+            {count !== undefined && count > 0 && (
+                <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                    activeFilter === filterType 
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-blue-100 text-blue-600'
+                }`}>
+                    {count}
+                </span>
+            )}
         </button>
     );
 
     return (
-        <div className="relative">
+        <div className="relative space-y-6">
             <Dashboard items={items} />
 
-            <div className="my-6 p-4 bg-white rounded-lg shadow-sm">
-                <div className="flex flex-col md:flex-row gap-4 items-center">
-                    <input
-                        type="text"
-                        placeholder="Pesquisar itens..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full md:flex-1 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        aria-label="Pesquisar itens na despensa"
-                    />
-                    <div className="flex items-center gap-2">
-                        <FilterButton filterType="all" text="Todos" />
-                        <FilterButton filterType="expiring" text="Vencendo" />
-                        <FilterButton filterType="expired" text="Vencidos" />
+            {/* Search and Filter Section */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div className="flex flex-col lg:flex-row gap-4 items-center">
+                    <div className="relative w-full lg:flex-1">
+                        <input
+                            type="text"
+                            placeholder="Pesquisar itens na despensa..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full p-4 pl-12 pr-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                            aria-label="Pesquisar itens na despensa"
+                        />
+                        <svg 
+                            className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <FilterButton filterType="all" text="Todos" count={items.length} />
+                        <FilterButton filterType="expiring" text="Vencendo" count={groupedItems.expiringSoon.length} />
+                        <FilterButton filterType="expired" text="Vencidos" count={groupedItems.expired.length} />
                     </div>
                 </div>
             </div>
 
-            {renderItemGroup('Vencidos', groupedItems.expired, 'text-red-600', 'expired')}
-            {renderItemGroup('Vencendo em Breve', groupedItems.expiringSoon, 'text-orange-600', 'expiringSoon')}
-            {renderItemGroup('Demais Itens', groupedItems.other, 'text-slate-700', 'other')}
+            {/* Items Display */}
+            <div className="space-y-6">
+                {renderItemGroup('Itens Vencidos', groupedItems.expired, 'text-red-600', 'expired', '⚠️')}
+                {renderItemGroup('Vencendo em Breve', groupedItems.expiringSoon, 'text-orange-600', 'expiringSoon', '⏰')}
+                {renderItemGroup('Demais Itens', groupedItems.other, 'text-gray-700', 'other', '📦')}
+            </div>
 
             <FloatingActionButton
                 onAddReceipt={() => onNavigate(AppView.AddReceipt)}
