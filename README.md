@@ -26,6 +26,7 @@ O principal problema que a **Desponha** resolve é a dificuldade em manter um co
 - Desperdício de alimentos comprados em excesso
 - Tempo gasto criando listas de compras manuais
 
+**Quem é afetado por esse problema:**
 - Pessoas que moram sozinhas e cuidam da própria alimentação
 - Famílias que precisam otimizar gastos e organizar compras
 - Indivíduos preocupados em reduzir desperdício e manter uma rotina mais organizada
