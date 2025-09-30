@@ -84,8 +84,6 @@ A Inteligência Artificial foi utilizada em três camadas principais durante o d
 
 **Apresente os ganhos que a solução pode trazer:**
 
-**Ganhos Implementados e Medidos:**
-
 **Benefícios Potenciais (com base na implementação atual):**
 - **Economia de Tempo:** Redução de 70-80% no tempo de organização doméstica (de cadastro manual para fotografia)
 - **Redução de Erros:** Eliminação de erros de digitação e inconsistências através de padronização automática
