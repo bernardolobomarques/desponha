@@ -8,21 +8,15 @@
 
 ## 2. Motivação
 
-**Explique por que escolheram esse tema:**
-
 A ideia da **Desponha** nasceu de uma dor pessoal de um integrante do grupo que mora sozinho. Ele percebia que, com frequência, esquecia de comprar certos alimentos no supermercado — acreditava que ainda tinha em casa, mas não tinha, ou então comprava em excesso e acabava acumulando.
 
 Essa situação, que parece simples, é muito comum no dia a dia de qualquer pessoa que cuida das compras de casa. E foi a partir desse problema real que surgiu a proposta de criar uma solução que automatize e facilite o gerenciamento do que se tem em casa, evitando tanto a falta quanto o excesso de alimentos.
-
-**Justifique a relevância prática, acadêmica ou social da solução:**
 
 - **Prática:** Ajuda as pessoas a nunca esquecerem o que comprar e evita esforço manual na hora de planejar compras
 - **Acadêmica:** Permite aplicar IA, visão computacional e machine learning em um contexto próximo da realidade cotidiana, explorando técnicas de OCR, processamento de linguagem natural e aprendizado de padrões
 - **Social:** Reduz desperdício de alimentos, um problema ambiental e econômico que afeta milhões de famílias, contribuindo para sustentabilidade
 
 ## 3. Problema
-
-**Descreva de forma clara o problema que o projeto pretende resolver:**
 
 O principal problema que a **Desponha** resolve é a dificuldade em manter um controle eficiente dos alimentos em casa. Isso gera:
 
@@ -32,19 +26,13 @@ O principal problema que a **Desponha** resolve é a dificuldade em manter um co
 - Desperdício de alimentos comprados em excesso
 - Tempo gasto criando listas de compras manuais
 
-**Indique quem é afetado por esse problema:**
-
 - Pessoas que moram sozinhas e cuidam da própria alimentação
 - Famílias que precisam otimizar gastos e organizar compras
 - Indivíduos preocupados em reduzir desperdício e manter uma rotina mais organizada
 
 ## 4. Solução Proposta
 
-**Explique como a solução funciona de forma resumida:**
-
 A **Desponha** é uma aplicação web inteligente desenvolvida em React que automatiza o controle de estoque doméstico através de inteligência artificial. O usuário fotografa ou faz upload de notas fiscais, e o sistema automaticamente extrai, padroniza e organiza os produtos em lotes individuais, estimando datas de validade e gerando listas de compras básicas. Todos os dados são armazenados localmente no navegador, permitindo uso offline completo.
-
-**Mostre como a IA foi utilizada:**
 
 A Inteligência Artificial foi utilizada em três camadas principais durante o desenvolvimento e operação:
 
@@ -63,8 +51,6 @@ A Inteligência Artificial foi utilizada em três camadas principais durante o d
 - **Estimativa de Validade:** Algoritmos que estimam datas baseado no tipo de produto
 - **Detecção de Duplicatas:** Prevenção automática de produtos repetidos no estoque
 
-**Indique as ferramentas utilizadas:**
-
 **Ferramentas de IA em Produção:**
 - **OpenAI GPT-4 Vision API** - OCR primário e padronização de texto
 - **Google Gemini Vision API** - Processamento alternativo de imagens
@@ -81,10 +67,6 @@ A Inteligência Artificial foi utilizada em três camadas principais durante o d
 - **Arquitetura:** 8 componentes especializados com estado centralizado
 
 ## 5. Benefícios Esperados
-
-**Apresente os ganhos que a solução pode trazer:**
-
-**Ganhos Implementados e Medidos:**
 
 **Benefícios Potenciais (com base na implementação atual):**
 - **Economia de Tempo:** Redução de 70-80% no tempo de organização doméstica (de cadastro manual para fotografia)
