@@ -10,7 +10,7 @@
 
 **Explique por que escolheram esse tema:**
 
-A ideia da **Despensa** nasceu de uma dor pessoal de um integrante do grupo que mora sozinho. Ele percebia que, com frequência, esquecia de comprar certos alimentos no supermercado — acreditava que ainda tinha em casa, mas não tinha, ou então comprava em excesso e acabava acumulando.
+A ideia da **Desponha** nasceu de uma dor pessoal de um integrante do grupo que mora sozinho. Ele percebia que, com frequência, esquecia de comprar certos alimentos no supermercado — acreditava que ainda tinha em casa, mas não tinha, ou então comprava em excesso e acabava acumulando.
 
 Essa situação, que parece simples, é muito comum no dia a dia de qualquer pessoa que cuida das compras de casa. E foi a partir desse problema real que surgiu a proposta de criar uma solução que automatize e facilite o gerenciamento do que se tem em casa, evitando tanto a falta quanto o excesso de alimentos.
 
@@ -24,7 +24,7 @@ Essa situação, que parece simples, é muito comum no dia a dia de qualquer pes
 
 **Descreva de forma clara o problema que o projeto pretende resolver:**
 
-O principal problema que a **Despensa** resolve é a dificuldade em manter um controle eficiente dos alimentos em casa. Isso gera:
+O principal problema que a **Desponha** resolve é a dificuldade em manter um controle eficiente dos alimentos em casa. Isso gera:
 
 - Esquecimento de itens importantes no supermercado
 - Compras duplicadas por achar que um produto acabou
@@ -42,7 +42,7 @@ O principal problema que a **Despensa** resolve é a dificuldade em manter um co
 
 **Explique como a solução funciona de forma resumida:**
 
-A **Despensa** é uma aplicação web inteligente desenvolvida em React que automatiza o controle de estoque doméstico através de inteligência artificial. O usuário fotografa ou faz upload de notas fiscais, e o sistema automaticamente extrai, padroniza e organiza os produtos em lotes individuais, estimando datas de validade e gerando listas de compras básicas. Todos os dados são armazenados localmente no navegador, permitindo uso offline completo.
+A **Desponha** é uma aplicação web inteligente desenvolvida em React que automatiza o controle de estoque doméstico através de inteligência artificial. O usuário fotografa ou faz upload de notas fiscais, e o sistema automaticamente extrai, padroniza e organiza os produtos em lotes individuais, estimando datas de validade e gerando listas de compras básicas. Todos os dados são armazenados localmente no navegador, permitindo uso offline completo.
 
 **Mostre como a IA foi utilizada:**
 
