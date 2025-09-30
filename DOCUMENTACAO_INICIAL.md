@@ -49,7 +49,7 @@ A **Desponha** é uma aplicação web inteligente desenvolvida em React que auto
 A Inteligência Artificial foi utilizada em três camadas principais durante o desenvolvimento e operação:
 
 ### **1. Desenvolvimento Assistido por IA:**
-- **GitHub Copilot:** Gerou aproximadamente 70% do código React/TypeScript, incluindo componentes completos, tipos complexos e lógica de negócio
+- **GitHub Copilot:** Assistência na programação
 - **Google AI Studio:** Prototipagem e teste de mais de 50 variações de prompts OCR com notas fiscais reais brasileiras
 - **ChatGPT:** Refinamento de arquitetura, debugging e otimização de algoritmos de processamento
 
@@ -59,15 +59,6 @@ A Inteligência Artificial foi utilizada em três camadas principais durante o d
 - **Mistral OCR:** Especializado em cupons fiscais brasileiros com parsing estruturado
 
 ### **3. Processamento Inteligente em Produção:**
-```typescript
-// Exemplo real implementado:
-const standardizeProductName = (rawName: string): string => {
-  return rawName
-    .replace(/AG\s*MIN/gi, 'Água Mineral')
-    .replace(/LEITE\s*SEMI/gi, 'Leite Semi-desnatado')
-    .replace(/ARROZ\s*T1/gi, 'Arroz Tipo 1');
-};
-```
 - **Padronização Automática:** Converte abreviações em nomes legíveis ("AG MIN" → "Água Mineral")
 - **Estimativa de Validade:** Algoritmos que estimam datas baseado no tipo de produto
 - **Detecção de Duplicatas:** Prevenção automática de produtos repetidos no estoque
@@ -80,7 +71,7 @@ const standardizeProductName = (rawName: string): string => {
 - **Mistral AI API** - Especializado em notas fiscais brasileiras
 
 **Ferramentas de Desenvolvimento:**
-- **GitHub Copilot** - Assistência na programação (70% do código gerado)
+- **GitHub Copilot** - Assistência na programação
 - **Google AI Studio** - Prototipagem e teste de prompts
 - **ChatGPT** - Refinamento de arquitetura e debugging
 
@@ -94,11 +85,6 @@ const standardizeProductName = (rawName: string): string => {
 **Apresente os ganhos que a solução pode trazer:**
 
 **Ganhos Implementados e Medidos:**
-- **Automação de Entrada:** 95% de redução no tempo de cadastro de produtos (de inserção manual para fotografia + confirmação)
-- **Padronização Inteligente:** Eliminação de inconsistências nos nomes de produtos através de IA (ex: "AG MIN" automaticamente vira "Água Mineral")
-- **Interface Responsiva:** Aplicação funciona perfeitamente em mobile e desktop, acessível via qualquer navegador moderno
-- **Armazenamento Local:** Funciona offline completo, sem necessidade de internet após carregamento inicial
-- **Processamento Redundante:** 3 serviços de OCR garantem 99% de sucesso na leitura de notas fiscais
 
 **Benefícios Potenciais (com base na implementação atual):**
 - **Economia de Tempo:** Redução de 70-80% no tempo de organização doméstica (de cadastro manual para fotografia)
@@ -107,8 +93,3 @@ const standardizeProductName = (rawName: string): string => {
 - **Sustentabilidade:** Base para redução de desperdício através de melhor controle de inventário
 - **Escalabilidade:** Arquitetura preparada para funcionalidades futuras como notificações e sugestões avançadas
 
-
-
----
-
-*Documentação criada em: 29 de setembro de 2025*
