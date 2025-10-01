@@ -95,3 +95,9 @@ Esta funcionalidade permitirá alertas proativos e sugestões automáticas de re
 - **Redução de Desperdício:** Prevenção proativa de vencimento de produtos através de alertas personalizados *(a implementar)*
 - **Economia de Tempo Avançada:** Eliminação completa do planejamento manual de compras *(objetivo final)*
 
+# Despensa Virtual Inteligente
+
+## 📑 **Apresentação do Projeto**
+🎨 **[Ver Apresentação do Projeto](https://gamma.app/docs/Despensa-5vig9ish7tg2toe)**
+
+---
