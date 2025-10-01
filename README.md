@@ -1,3 +1,10 @@
+# Despensa Virtual Inteligente
+
+## 📑 **Apresentação do Projeto**
+🎨 **[Ver Apresentação Completa](https://gamma.app/docs/Despensa-5vig9ish7tg2toe)**
+
+---
+
 # Documentação Inicial do Projeto
 
 ## 1. Identificação do Projeto
