@@ -1,6 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import type { ShoppingListItem, PantryItemGroup, Priority } from '../types';
-import { AppView } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import type { ShoppingListItem, PantryItemGroup } from '../types';
+import { AppView, Priority } from '../types';
+import { smartShoppingEngine } from '../services/smartShoppingService';
+import { supabase } from '../services/supabaseClient';
+import { MLStats } from './MLStats';
 
 interface ShoppingListProps {
   items: PantryItemGroup[];
@@ -41,8 +44,9 @@ const ReasonBadge: React.FC<{ reason: ShoppingListItem['reason'] }> = ({ reason 
 const ShoppingListItemCard: React.FC<{ 
   item: ShoppingListItem; 
   onToggleCompleted: (id: string) => void;
+  onRemove?: (itemName: string) => void;
   isCompleted: boolean;
-}> = ({ item, onToggleCompleted, isCompleted }) => {
+}> = ({ item, onToggleCompleted, onRemove, isCompleted }) => {
   return (
     <div className={`bg-white rounded-lg shadow-sm border p-4 transition-all ${isCompleted ? 'opacity-50 bg-gray-50' : ''}`}>
       <div className="flex items-start justify-between">
@@ -57,6 +61,17 @@ const ShoppingListItemCard: React.FC<{
             <h3 className={`text-lg font-semibold ${isCompleted ? 'line-through text-gray-500' : 'text-gray-900'}`}>
               {item.name}
             </h3>
+            {item.reason === 'manual' && onRemove && (
+              <button
+                onClick={() => onRemove(item.name)}
+                className="ml-2 p-1 text-red-500 hover:bg-red-50 rounded"
+                title="Remover item manual"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
           
           <div className="ml-8 space-y-2">
@@ -100,76 +115,117 @@ const EmptyShoppingList: React.FC = () => (
 export const ShoppingList: React.FC<ShoppingListProps> = ({ items, onNavigate }) => {
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [manualItems, setManualItems] = useState<string[]>([]);
+  const [newItemName, setNewItemName] = useState('');
 
-  // Generate smart shopping suggestions based on pantry state
-  const shoppingListItems = useMemo((): ShoppingListItem[] => {
-    const suggestions: ShoppingListItem[] = [];
-    const now = new Date();
+  // Generate smart shopping suggestions using ML engine + Supabase
+  const [shoppingListItems, setShoppingListItems] = useState<ShoppingListItem[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-    // Generate suggestions based on current pantry state
-    items.forEach(group => {
-      let totalQuantity = 0;
-      let hasExpiredItems = false;
-      let hasExpiringSoonItems = false;
-      
-      group.instances.forEach(instance => {
-        totalQuantity += instance.quantity;
-        const expiryDate = new Date(instance.expiryDate);
-        const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (daysRemaining < 0) hasExpiredItems = true;
-        if (daysRemaining <= 3 && daysRemaining >= 0) hasExpiringSoonItems = true;
-      });
-
-      // Add to shopping list if low stock (quantity <= 2)
-      if (totalQuantity <= 2 && totalQuantity > 0) {
-        suggestions.push({
-          id: `${group.id}-lowstock`,
-          name: group.name,
-          suggestedQuantity: 5,
-          priority: group.priority,
-          reason: 'low_stock',
-          estimatedNeed: 7
+  // Load suggestions when items or manual items change
+  useEffect(() => {
+    const loadSuggestions = async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        // 1. Buscar sugestões baseadas em padrões ML do Supabase
+        const { data: mlSuggestions, error } = await supabase.rpc('get_shopping_suggestions', {
+          p_user_id: 'user_123', // TODO: usar user ID real
+          p_days_threshold: 7 // Sugerir produtos que precisam ser comprados nos próximos 7 dias (aumentado)
         });
-      }
-      
-      // Add to shopping list if expired items
-      if (hasExpiredItems) {
-        suggestions.push({
-          id: `${group.id}-expired`,
-          name: group.name,
-          suggestedQuantity: 3,
-          priority: 'Alta' as Priority,
-          reason: 'expired',
-          estimatedNeed: 1
-        });
-      }
-    });
 
-    // Add some example future consumption-based suggestions
-    if (suggestions.length < 3) {
-      suggestions.push(
-        {
-          id: 'suggestion-1',
-          name: 'Leite',
-          suggestedQuantity: 2,
-          priority: 'Média' as Priority,
-          reason: 'consumption_pattern',
-          estimatedNeed: 3
-        },
-        {
-          id: 'suggestion-2', 
-          name: 'Pão',
-          suggestedQuantity: 1,
-          priority: 'Alta' as Priority,
-          reason: 'consumption_pattern',
-          estimatedNeed: 1
+        console.log('🔍 ML Suggestions from Supabase:', { mlSuggestions, error });
+
+        const suggestions: ShoppingListItem[] = [];
+
+        // Adicionar sugestões baseadas em ML
+        if (!error && mlSuggestions && mlSuggestions.length > 0) {
+          console.log(`✅ Found ${mlSuggestions.length} ML suggestions`);
+          mlSuggestions.forEach((suggestion: any) => {
+            suggestions.push({
+              id: `ml-${suggestion.product_name}`,
+              name: suggestion.product_name,
+              suggestedQuantity: 1, // Pode ser ajustado baseado no histórico
+              priority: (suggestion.days_until_needed <= 1 ? Priority.High : 
+                       suggestion.days_until_needed <= 2 ? Priority.Medium : Priority.Low) as Priority,
+              reason: 'consumption_pattern',
+              estimatedNeed: suggestion.days_until_needed
+            });
+          });
+        } else if (error) {
+          console.error('❌ Supabase error:', error);
+        } else {
+          console.log('ℹ️ No ML suggestions found (banco vazio ou nenhum produto próximo do threshold)');
         }
-      );
-    }
 
-    return suggestions;
-  }, [items]);
+        // 2. Adicionar sugestões baseadas em estoque baixo (fallback local)
+        items.forEach(group => {
+          const totalQuantity = group.instances.reduce((sum, inst) => sum + inst.quantity, 0);
+          
+          // Evitar duplicatas de sugestões ML
+          const alreadySuggestedByML = suggestions.some(s => 
+            s.name.toLowerCase() === group.name.toLowerCase()
+          );
+          
+          if (totalQuantity <= 2 && totalQuantity > 0 && !alreadySuggestedByML) {
+            suggestions.push({
+              id: `${group.id}-lowstock`,
+              name: group.name,
+              suggestedQuantity: 3,
+              priority: group.priority,
+              reason: 'low_stock',
+              estimatedNeed: 7
+            });
+          }
+        });
+
+        // 3. Adicionar itens manuais
+        manualItems.forEach(itemName => {
+          const alreadyInList = suggestions.some(s => 
+            s.name.toLowerCase() === itemName.toLowerCase()
+          );
+          
+          if (!alreadyInList) {
+            suggestions.push({
+              id: `manual-${itemName}`,
+              name: itemName,
+              suggestedQuantity: 1,
+              priority: Priority.Medium,
+              reason: 'manual'
+            });
+          }
+        });
+
+        console.log(`📋 Total suggestions generated: ${suggestions.length}`, suggestions);
+        
+        setShoppingListItems(suggestions);
+      } catch (error) {
+        console.error('❌ Erro ao gerar lista inteligente:', error);
+        
+        // Fallback para sugestões básicas em caso de erro
+        const basicSuggestions: ShoppingListItem[] = [];
+        items.forEach(group => {
+          const totalQuantity = group.instances.reduce((sum, inst) => sum + inst.quantity, 0);
+          
+          if (totalQuantity <= 2 && totalQuantity > 0) {
+            basicSuggestions.push({
+              id: `${group.id}-lowstock`,
+              name: group.name,
+              suggestedQuantity: 3,
+              priority: group.priority,
+              reason: 'low_stock',
+              estimatedNeed: 7
+            });
+          }
+        });
+        
+        setShoppingListItems(basicSuggestions);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+
+    loadSuggestions();
+  }, [items, manualItems]);
 
   const filteredItems = useMemo(() => {
     return shoppingListItems.filter(item =>
@@ -192,6 +248,18 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({ items, onNavigate })
 
   const clearCompleted = () => {
     setCompletedItems(new Set());
+  };
+
+  const handleAddManualItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newItemName.trim() && !manualItems.includes(newItemName.trim())) {
+      setManualItems(prev => [...prev, newItemName.trim()]);
+      setNewItemName('');
+    }
+  };
+
+  const handleRemoveManualItem = (itemToRemove: string) => {
+    setManualItems(prev => prev.filter(item => item !== itemToRemove));
   };
 
   return (
@@ -227,6 +295,25 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({ items, onNavigate })
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
+
+        {/* Add Manual Item */}
+        <form onSubmit={handleAddManualItem} className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Adicionar item manualmente..."
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <button
+            type="submit"
+            disabled={!newItemName.trim()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <span>+</span>
+            Adicionar
+          </button>
+        </form>
       </div>
 
       {filteredItems.length === 0 ? (
@@ -248,6 +335,7 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({ items, onNavigate })
                     key={item.id}
                     item={item}
                     onToggleCompleted={handleToggleCompleted}
+                    onRemove={item.reason === 'manual' ? handleRemoveManualItem : undefined}
                     isCompleted={false}
                   />
                 ))}
@@ -278,6 +366,7 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({ items, onNavigate })
                     key={item.id}
                     item={item}
                     onToggleCompleted={handleToggleCompleted}
+                    onRemove={item.reason === 'manual' ? handleRemoveManualItem : undefined}
                     isCompleted={true}
                   />
                 ))}
@@ -287,18 +376,8 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({ items, onNavigate })
         </div>
       )}
 
-      {/* Future Feature Notice */}
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🚀</span>
-          <div>
-            <h3 className="font-semibold text-purple-900">Em breve: Sugestões inteligentes!</h3>
-            <p className="text-purple-700 text-sm">
-              Implementaremos tracking de consumo para gerar sugestões baseadas no seu padrão de uso real.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* ML Stats */}
+      <MLStats />
     </div>
   );
 };

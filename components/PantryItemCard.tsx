@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { PantryItemGroup, PantryItemInstance } from '../types';
 import { Priority } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
+import { ConsumptionTracker } from './ConsumptionTracker';
+import { smartShoppingEngine } from '../services/smartShoppingService';
 
 interface PantryItemCardProps {
   item: PantryItemGroup;
@@ -207,6 +209,7 @@ export const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onUpdateGr
   const [isEditingGroup, setIsEditingGroup] = useState(false);
   const [editedGroup, setEditedGroup] = useState(item);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isConsumptionTrackerOpen, setIsConsumptionTrackerOpen] = useState(false);
   
   const soonestExpiryDays = useMemo(() => {
     if (item.instances.length === 0) return Infinity;
@@ -225,6 +228,32 @@ export const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onUpdateGr
       onDeleteGroup(item.id);
       setIsDeleteModalOpen(false);
   }
+
+  const handleConsumptionRecorded = (newTotalQuantity: number) => {
+    // Atualiza a quantidade nas instâncias (remove da primeira instância que não está vencida)
+    const sortedInstances = [...item.instances].sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+    let remainingToReduce = getTotalQuantity() - newTotalQuantity;
+    
+    const updatedInstances = sortedInstances.map(instance => {
+      if (remainingToReduce <= 0) return instance;
+      
+      const toReduce = Math.min(instance.quantity, remainingToReduce);
+      remainingToReduce -= toReduce;
+      
+      return {
+        ...instance,
+        quantity: instance.quantity - toReduce
+      };
+    }).filter(instance => instance.quantity > 0);
+
+    // Atualiza o grupo
+    const updatedGroup = {
+      ...item,
+      instances: updatedInstances
+    };
+
+    onUpdateGroup(updatedGroup);
+  };
 
   const isExpiringSoon = soonestExpiryDays <= 3 && soonestExpiryDays >= 0;
   const isExpired = soonestExpiryDays < 0;
@@ -283,6 +312,15 @@ export const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onUpdateGr
                   <div className="flex items-center gap-3">
                     <PriorityBadge priority={item.priority} />
                     <div className="flex gap-2">
+                      <button 
+                        onClick={() => setIsConsumptionTrackerOpen(true)} 
+                        className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all flex items-center gap-1"
+                        title="Registrar consumo"
+                        disabled={getTotalQuantity() <= 0}
+                      >
+                        <span>🍽️</span>
+                        Consumir
+                      </button>
                       <button 
                         onClick={() => setIsEditingGroup(true)} 
                         className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
@@ -352,6 +390,15 @@ export const PantryItemCard: React.FC<PantryItemCardProps> = ({ item, onUpdateGr
         message={`Tem certeza que deseja excluir "${item.name}" e todas as suas entradas da despensa? Esta ação não pode ser desfeita.`}
         confirmText="Excluir Grupo"
       />
+      
+      {isConsumptionTrackerOpen && (
+        <ConsumptionTracker
+          itemName={item.name}
+          currentQuantity={getTotalQuantity()}
+          onConsumptionRecorded={handleConsumptionRecorded}
+          onClose={() => setIsConsumptionTrackerOpen(false)}
+        />
+      )}
     </>
   );
 };

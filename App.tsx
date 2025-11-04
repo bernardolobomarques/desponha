@@ -8,6 +8,8 @@ import { AddReceiptView } from './components/AddReceiptView';
 import { ManualAddItemView } from './components/ManualAddItemView';
 import { Header } from './components/Header';
 import { AppView } from './types';
+import { smartShoppingEngine } from './services/smartShoppingService';
+import { supabase } from './services/supabaseClient';
 
 const getSoonestExpiryDate = (group: PantryItemGroup): string => {
   if (!group.instances || group.instances.length === 0) {
@@ -78,7 +80,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleAddItems = (newItems: NewPantryItem[], defaultPriority: Priority = 'Média' as Priority) => {
+  const handleAddItems = async (newItems: NewPantryItem[], defaultPriority: Priority = 'Média' as Priority) => {
     const updatedPantry = [...items];
 
     newItems.forEach(newItem => {
@@ -114,6 +116,44 @@ const App: React.FC = () => {
         });
       }
     });
+    
+    // Registra as compras no sistema de ML para cada item adicionado
+    const purchasePromises = newItems.map(async (newItem) => {
+      try {
+        // 1. Registrar no Supabase
+        const { error: supabaseError } = await supabase
+          .from('purchases')
+          .insert({
+            user_id: 'user_123', // TODO: usar user ID real
+            product_name: newItem.name,
+            quantity: newItem.quantity,
+            purchase_date: new Date().toISOString(),
+            expiry_date: newItem.expiryDate
+          });
+
+        if (supabaseError) {
+          console.error('❌ Erro ao registrar compra no Supabase:', {
+            error: supabaseError,
+            message: supabaseError.message,
+            details: supabaseError.details,
+            hint: supabaseError.hint,
+            code: supabaseError.code,
+            produto: newItem
+          });
+          // Continua mesmo com erro - fallback para localStorage
+        } else {
+          console.log(`✅ Compra registrada no Supabase: ${newItem.name} (${newItem.quantity})`);
+        }
+
+        // 2. Registrar no sistema local (fallback)
+        smartShoppingEngine.recordPurchase(newItem.name, newItem.quantity, newItem.expiryDate);
+      } catch (error) {
+        console.error('❌ Erro ao registrar compra:', error);
+      }
+    });
+
+    // Aguardar todas as promises antes de continuar
+    await Promise.all(purchasePromises);
     
     saveItems(updatedPantry);
     setView(AppView.Pantry);
