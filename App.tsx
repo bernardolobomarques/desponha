@@ -10,6 +10,7 @@ import { Header } from './components/Header';
 import { AppView } from './types';
 import { smartShoppingEngine } from './services/smartShoppingService';
 import { supabase } from './services/supabaseClient';
+import { normalizeProducts } from './services/productNormalizationService';
 
 const getSoonestExpiryDate = (group: PantryItemGroup): string => {
   if (!group.instances || group.instances.length === 0) {
@@ -81,9 +82,18 @@ const App: React.FC = () => {
   }, []);
 
   const handleAddItems = async (newItems: NewPantryItem[], defaultPriority: Priority = 'Média' as Priority) => {
+    console.log('🚀 Iniciando adição de produtos...');
+    
+    // 1. NORMALIZAR produtos com IA antes de processar
+    const normalizedItems = await normalizeProducts(newItems, 'user_123');
+    
+    console.log('📋 Produtos normalizados:', normalizedItems.map(p => 
+      `"${p.originalName}" -> "${p.name}" ${p.isExisting ? '(EXISTENTE)' : '(NOVO)'}`
+    ));
+    
     const updatedPantry = [...items];
 
-    newItems.forEach(newItem => {
+    normalizedItems.forEach(newItem => {
       const existingGroupIndex = updatedPantry.findIndex(
         group => group.name.trim().toLowerCase() === newItem.name.trim().toLowerCase()
       );
@@ -96,12 +106,14 @@ const App: React.FC = () => {
 
         if (existingInstanceIndex > -1) {
           existingGroup.instances[existingInstanceIndex].quantity += newItem.quantity;
+          console.log(`  ➕ Aumentou quantidade: ${newItem.name} (${existingGroup.instances[existingInstanceIndex].quantity})`);
         } else {
           existingGroup.instances.push({
             id: uuidv4(),
             quantity: newItem.quantity,
             expiryDate: newItem.expiryDate,
           });
+          console.log(`  📦 Nova instância: ${newItem.name}`);
         }
       } else {
         updatedPantry.push({
@@ -114,11 +126,12 @@ const App: React.FC = () => {
             expiryDate: newItem.expiryDate,
           }],
         });
+        console.log(`  ✨ Novo produto: ${newItem.name}`);
       }
     });
     
-    // Registra as compras no sistema de ML para cada item adicionado
-    const purchasePromises = newItems.map(async (newItem) => {
+    // 2. Registra as compras no sistema de ML para cada item NORMALIZADO
+    const purchasePromises = normalizedItems.map(async (newItem) => {
       try {
         // 1. Registrar no Supabase
         const { error: supabaseError } = await supabase
