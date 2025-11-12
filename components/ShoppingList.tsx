@@ -3,6 +3,7 @@ import type { ShoppingListItem, PantryItemGroup } from '../types';
 import { AppView, Priority } from '../types';
 import { smartShoppingEngine } from '../services/smartShoppingService';
 import { supabase } from '../services/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 import { MLStats } from './MLStats';
 
 interface ShoppingListProps {
@@ -113,6 +114,7 @@ const EmptyShoppingList: React.FC = () => (
 );
 
 export const ShoppingList: React.FC<ShoppingListProps> = ({ items, onNavigate }) => {
+  const { user } = useAuth();
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [manualItems, setManualItems] = useState<string[]>([]);
@@ -125,11 +127,13 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({ items, onNavigate })
   // Load suggestions when items or manual items change
   useEffect(() => {
     const loadSuggestions = async () => {
+      if (!user) return;
+      
       setIsLoadingSuggestions(true);
       try {
         // 1. Buscar sugestões baseadas em padrões ML do Supabase
         const { data: mlSuggestions, error } = await supabase.rpc('get_shopping_suggestions', {
-          p_user_id: 'user_123', // TODO: usar user ID real
+          p_user_id: user.id,
           p_days_threshold: 7 // Sugerir produtos que precisam ser comprados nos próximos 7 dias (aumentado)
         });
 
@@ -225,7 +229,7 @@ export const ShoppingList: React.FC<ShoppingListProps> = ({ items, onNavigate })
     };
 
     loadSuggestions();
-  }, [items, manualItems]);
+  }, [items, manualItems, user]);
 
   const filteredItems = useMemo(() => {
     return shoppingListItems.filter(item =>

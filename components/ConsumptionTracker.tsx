@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { smartShoppingEngine } from '../services/smartShoppingService';
 import { supabase } from '../services/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ConsumptionTrackerProps {
   itemName: string;
@@ -15,13 +16,14 @@ export const ConsumptionTracker: React.FC<ConsumptionTrackerProps> = ({
   onConsumptionRecorded,
   onClose
 }) => {
+  const { user } = useAuth();
   const [consumedQuantity, setConsumedQuantity] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (consumedQuantity <= 0 || consumedQuantity > currentQuantity) return;
+    if (consumedQuantity <= 0 || consumedQuantity > currentQuantity || !user) return;
     
     setIsSubmitting(true);
     
@@ -32,7 +34,7 @@ export const ConsumptionTracker: React.FC<ConsumptionTrackerProps> = ({
       const { error: supabaseError } = await supabase
         .from('consumption')
         .insert({
-          user_id: 'user_123', // TODO: usar user ID real
+          user_id: user.id,
           product_name: itemName,
           quantity_consumed: consumedQuantity,
           remaining_quantity: newQuantity,

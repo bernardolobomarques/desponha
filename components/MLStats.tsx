@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PatternData {
   product_name: string;
@@ -10,6 +11,7 @@ interface PatternData {
 }
 
 export const MLStats: React.FC = () => {
+  const { user } = useAuth();
   const [patterns, setPatterns] = useState<PatternData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -17,6 +19,8 @@ export const MLStats: React.FC = () => {
 
   // Carregar padrões do banco
   const loadPatterns = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -35,15 +39,17 @@ export const MLStats: React.FC = () => {
 
   useEffect(() => {
     loadPatterns();
-  }, []);
+  }, [user]);
 
   // Função para popular dados de teste
   const seedTestData = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     setMessage('');
     try {
       const { error } = await supabase.rpc('seed_test_data', {
-        p_user_id: 'user_123'
+        p_user_id: user.id
       });
 
       if (error) throw error;
@@ -59,13 +65,13 @@ export const MLStats: React.FC = () => {
 
   // Função para limpar todos os dados
   const clearAllData = async () => {
-    if (!confirm('Tem certeza que deseja limpar todos os dados do ML?')) return;
+    if (!user || !confirm('Tem certeza que deseja limpar todos os dados do ML?')) return;
     
     setIsLoading(true);
     setMessage('');
     try {
       const { error } = await supabase.rpc('clear_all_data', {
-        p_user_id: 'user_123'
+        p_user_id: user.id
       });
 
       if (error) throw error;
@@ -81,11 +87,13 @@ export const MLStats: React.FC = () => {
 
   // Função para recalcular padrões
   const recalculatePatterns = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     setMessage('');
     try {
       const { error } = await supabase.rpc('calculate_consumption_patterns', {
-        p_user_id: 'user_123'
+        p_user_id: user.id
       });
 
       if (error) throw error;

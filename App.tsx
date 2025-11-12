@@ -7,10 +7,12 @@ import { TabNavigation } from './components/TabNavigation';
 import { AddReceiptView } from './components/AddReceiptView';
 import { ManualAddItemView } from './components/ManualAddItemView';
 import { Header } from './components/Header';
+import { Auth } from './components/Auth';
 import { AppView } from './types';
 import { smartShoppingEngine } from './services/smartShoppingService';
 import { supabase } from './services/supabaseClient';
 import { normalizeProducts } from './services/productNormalizationService';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const getSoonestExpiryDate = (group: PantryItemGroup): string => {
   if (!group.instances || group.instances.length === 0) {
@@ -22,11 +24,12 @@ const getSoonestExpiryDate = (group: PantryItemGroup): string => {
 };
 
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { user, loading } = useAuth();
   const [view, setView] = useState<AppView>(AppView.Pantry);
   const [items, setItems] = useState<PantryItemGroup[]>([]);
 
-  // Count shopping list suggestions
+  // Count shopping list suggestions (DEVE vir antes dos early returns)
   const shoppingListCount = useMemo(() => {
     let suggestions = 0;
     const now = new Date();
@@ -54,38 +57,89 @@ const App: React.FC = () => {
     return suggestions;
   }, [items]);
 
+  // Carregar itens do Supabase ao iniciar
   useEffect(() => {
-    try {
-      const storedItems = localStorage.getItem('pantryItems');
-      if (storedItems) {
-        setItems(JSON.parse(storedItems));
+    const loadItemsFromSupabase = async () => {
+      if (!user) return;
+
+      try {
+        console.log('📥 Carregando itens do Supabase...');
+        
+        const { data: purchases, error } = await supabase
+          .from('purchases')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!purchases || purchases.length === 0) {
+          console.log('📦 Nenhum item no banco de dados');
+          setItems([]);
+          return;
+        }
+
+        // Agrupar compras por produto
+        const groupedItems: PantryItemGroup[] = [];
+        purchases.forEach((purchase: any) => {
+          const existingGroup = groupedItems.find(
+            g => g.name.toLowerCase() === purchase.product_name.toLowerCase()
+          );
+
+          if (existingGroup) {
+            // Adicionar instância ao grupo existente
+            existingGroup.instances.push({
+              id: purchase.id,
+              quantity: purchase.quantity,
+              expiryDate: purchase.expiry_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            });
+          } else {
+            // Criar novo grupo
+            groupedItems.push({
+              id: purchase.id,
+              name: purchase.product_name,
+              priority: 'Média' as Priority,
+              instances: [{
+                id: purchase.id,
+                quantity: purchase.quantity,
+                expiryDate: purchase.expiry_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+              }]
+            });
+          }
+        });
+
+        // Ordenar por data de validade mais próxima
+        const sortedItems = groupedItems.sort((a, b) => {
+          const soonestA = new Date(getSoonestExpiryDate(a)).getTime();
+          const soonestB = new Date(getSoonestExpiryDate(b)).getTime();
+          return soonestA - soonestB;
+        });
+
+        setItems(sortedItems);
+        console.log(`✅ ${sortedItems.length} produtos carregados do banco`);
+      } catch (error) {
+        console.error('❌ Erro ao carregar itens do Supabase:', error);
+        setItems([]);
       }
-    } catch (error) {
-      console.error("Failed to load items from localStorage", error);
-      setItems([]);
-    }
-  }, []);
+    };
+
+    loadItemsFromSupabase();
+  }, [user]);
 
   const saveItems = useCallback((newItems: PantryItemGroup[]) => {
-    try {
-      const sortedItems = newItems.sort((a, b) => {
-        const soonestA = new Date(getSoonestExpiryDate(a)).getTime();
-        const soonestB = new Date(getSoonestExpiryDate(b)).getTime();
-        return soonestA - soonestB;
-      });
-      localStorage.setItem('pantryItems', JSON.stringify(sortedItems));
-      setItems(sortedItems);
-    } catch (error)
-      {
-      console.error("Failed to save items to localStorage", error);
-    }
+    const sortedItems = newItems.sort((a, b) => {
+      const soonestA = new Date(getSoonestExpiryDate(a)).getTime();
+      const soonestB = new Date(getSoonestExpiryDate(b)).getTime();
+      return soonestA - soonestB;
+    });
+    setItems(sortedItems);
   }, []);
 
   const handleAddItems = async (newItems: NewPantryItem[], defaultPriority: Priority = 'Média' as Priority) => {
     console.log('🚀 Iniciando adição de produtos...');
     
     // 1. NORMALIZAR produtos com IA antes de processar
-    const normalizedItems = await normalizeProducts(newItems, 'user_123');
+    const normalizedItems = await normalizeProducts(newItems, user!.id);
     
     console.log('📋 Produtos normalizados:', normalizedItems.map(p => 
       `"${p.originalName}" -> "${p.name}" ${p.isExisting ? '(EXISTENTE)' : '(NOVO)'}`
@@ -137,7 +191,7 @@ const App: React.FC = () => {
         const { error: supabaseError } = await supabase
           .from('purchases')
           .insert({
-            user_id: 'user_123', // TODO: usar user ID real
+            user_id: user!.id,
             product_name: newItem.name,
             quantity: newItem.quantity,
             purchase_date: new Date().toISOString(),
@@ -176,17 +230,66 @@ const App: React.FC = () => {
     handleAddItems([newItem], newItem.priority);
   };
 
-  const handleUpdateGroup = (updatedGroup: PantryItemGroup) => {
+  const handleUpdateGroup = async (updatedGroup: PantryItemGroup) => {
     const updatedItems = items.map(group => group.id === updatedGroup.id ? updatedGroup : group);
     saveItems(updatedItems);
+    
+    // TODO: Atualizar prioridade no banco se necessário
   };
 
-  const handleDeleteGroup = (groupId: string) => {
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!user) return;
+
+    try {
+      console.log('🗑️ Deletando grupo do banco...');
+      
+      // Deletar todas as compras do produto
+      const groupToDelete = items.find(g => g.id === groupId);
+      if (groupToDelete) {
+        const { error } = await supabase
+          .from('purchases')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_name', groupToDelete.name);
+
+        if (error) {
+          console.error('❌ Erro ao deletar do banco:', error);
+        } else {
+          console.log('✅ Grupo deletado do banco');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao deletar grupo:', error);
+    }
+
     const updatedItems = items.filter(group => group.id !== groupId);
     saveItems(updatedItems);
   };
 
-  const handleUpdateInstance = (groupId: string, updatedInstance: PantryItemInstance) => {
+  const handleUpdateInstance = async (groupId: string, updatedInstance: PantryItemInstance) => {
+    if (!user) return;
+
+    try {
+      console.log('🔄 Atualizando quantidade no banco...');
+      
+      // Atualizar quantidade no Supabase
+      const { error } = await supabase
+        .from('purchases')
+        .update({ 
+          quantity: updatedInstance.quantity,
+          expiry_date: updatedInstance.expiryDate
+        })
+        .eq('id', updatedInstance.id);
+
+      if (error) {
+        console.error('❌ Erro ao atualizar no banco:', error);
+      } else {
+        console.log('✅ Quantidade atualizada no banco');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao atualizar instância:', error);
+    }
+
     const updatedItems = items.map(group => {
         if (group.id === groupId) {
             const newInstances = group.instances.map(instance => 
@@ -199,21 +302,69 @@ const App: React.FC = () => {
     saveItems(updatedItems);
   };
 
-  const handleDeleteInstance = (groupId: string, instanceId: string) => {
-      const updatedItems: PantryItemGroup[] = [];
-      items.forEach(group => {
-          if (group.id === groupId) {
-              const newInstances = group.instances.filter(instance => instance.id !== instanceId);
-              // If there are instances left, update the group. Otherwise, the group is removed.
-              if (newInstances.length > 0) {
-                  updatedItems.push({ ...group, instances: newInstances });
-              }
-          } else {
-              updatedItems.push(group);
-          }
-      });
-      saveItems(updatedItems);
+  const handleDeleteInstance = async (groupId: string, instanceId: string) => {
+    if (!user) return;
+
+    try {
+      console.log('🗑️ Deletando instância do banco...');
+      
+      // Deletar compra específica do Supabase
+      const { error } = await supabase
+        .from('purchases')
+        .delete()
+        .eq('id', instanceId);
+
+      if (error) {
+        console.error('❌ Erro ao deletar instância do banco:', error);
+      } else {
+        console.log('✅ Instância deletada do banco');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao deletar instância:', error);
+    }
+
+    const updatedItems: PantryItemGroup[] = [];
+    items.forEach(group => {
+        if (group.id === groupId) {
+            const newInstances = group.instances.filter(instance => instance.id !== instanceId);
+            // If there are instances left, update the group. Otherwise, the group is removed.
+            if (newInstances.length > 0) {
+                updatedItems.push({ ...group, instances: newInstances });
+            }
+        } else {
+            updatedItems.push(group);
+        }
+    });
+    saveItems(updatedItems);
   };
+
+  // Early returns APÓS todos os hooks
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        backgroundColor: '#f5f5f5'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            fontSize: '48px',
+            marginBottom: '16px'
+          }}>🛒</div>
+          <div style={{
+            fontSize: '18px',
+            color: '#6b7280'
+          }}>Carregando...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Auth />;
+  }
   
   const renderView = () => {
     switch(view) {
@@ -269,6 +420,15 @@ const App: React.FC = () => {
         {renderView()}
       </main>
     </div>
+  );
+};
+
+// Componente principal com Provider de autenticação
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

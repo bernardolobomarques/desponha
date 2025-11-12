@@ -63,26 +63,43 @@ PRODUTOS EXISTENTES NO BANCO:
 ${existingProducts.length > 0 ? existingProducts.map((p, i) => `${i + 1}. ${p}`).join('\n') : 'Nenhum produto cadastrado ainda'}
 
 TAREFA:
-1. Normalize o nome do produto para uma forma padrão e genérica (ex: "leite integral parmalat 1L" -> "Leite")
-2. Verifique se este produto é SIMILAR a algum dos produtos existentes no banco
-3. Um produto é similar se for a mesma categoria, mesmo que com marca/tamanho diferente
-   Exemplos:
-   - "leite integral 1L" é similar a "Leite"
-   - "pão francês 6 unidades" é similar a "Pão"
-   - "café pilão 500g" é similar a "Café"
-   - "arroz tio joão 5kg" é similar a "Arroz"
+1. Normalize o nome do produto removendo APENAS informações irrelevantes (quantidade, volume, embalagem)
+2. MANTENHA informações importantes: marca, sabor, tipo, variação
+3. Verifique se este produto é EXATAMENTE IGUAL a algum dos produtos existentes
+
+REGRAS DE NORMALIZAÇÃO:
+✅ MANTER:
+   - Marca (Coca-Cola, Pepsi, Parmalat, Nestlé, etc)
+   - Sabor (Guaraná, Laranja, Uva, Morango, etc)
+   - Tipo (Integral, Desnatado, Zero, Light, etc)
+   - Variações importantes (Diet, Zero Açúcar, Sem Lactose, etc)
+
+❌ REMOVER:
+   - Volumes (1L, 2L, 500ml, 350ml, etc)
+   - Quantidades (6 unidades, pacote com 12, etc)
+   - Embalagens (lata, garrafa, pet, tetra pak, etc)
+   - Palavras genéricas (unidade, pacote, caixa, etc)
+
+EXEMPLOS:
+- "coca cola 2L" → "Coca-Cola"
+- "coca cola zero 350ml" → "Coca-Cola Zero"
+- "guaraná antarctica 2L" → "Guaraná Antarctica"
+- "leite parmalat integral 1L" → "Leite Parmalat Integral"
+- "leite parmalat desnatado 1L" → "Leite Parmalat Desnatado"
+- "pão francês 6 unidades" → "Pão Francês"
+- "refrigerante fanta laranja 2L" → "Fanta Laranja"
+- "refrigerante fanta uva 2L" → "Fanta Uva"
 
 IMPORTANTE:
-- Use sempre a primeira letra maiúscula e resto minúsculo
-- Remova marcas, tamanhos, quantidades
-- Seja genérico (Leite, Pão, Arroz, Feijão, Café, etc)
-- Seja conservador: apenas marque como similar se for REALMENTE o mesmo tipo de produto
+- Use capitalização correta (primeira letra maiúscula)
+- Produtos são IGUAIS apenas se marca E sabor/tipo forem idênticos
+- Seja CONSERVADOR: só marque como igual se for EXATAMENTE o mesmo produto
 
 Responda APENAS em JSON válido neste formato:
 {
   "normalizedName": "nome normalizado",
   "isMatch": true/false,
-  "matchedProduct": "nome do produto similar ou null",
+  "matchedProduct": "nome do produto igual ou null",
   "confidence": 0.0 a 1.0
 }`;
 
@@ -142,7 +159,7 @@ Responda APENAS em JSON válido neste formato:
  */
 export async function normalizeProducts(
   products: Array<{ name: string; quantity: number; expiryDate: string }>,
-  userId: string = 'user_123'
+  userId: string
 ): Promise<Array<{ name: string; quantity: number; expiryDate: string; isExisting: boolean; originalName: string }>> {
   console.log('🤖 Iniciando normalização de produtos com IA...');
   
@@ -184,7 +201,7 @@ export async function normalizeProducts(
  */
 export async function normalizeSingleProduct(
   productName: string,
-  userId: string = 'user_123'
+  userId: string
 ): Promise<string> {
   const existingProducts = await getExistingProducts(userId);
   const match = await normalizeProductWithAI(productName, existingProducts);
