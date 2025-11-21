@@ -1,7 +1,148 @@
-# Despensa Virtual Inteligente
+# 🛒 Desponha - Despensa Virtual Inteligente
+
+Controle sua despensa automaticamente com inteligência artificial. Fotografe notas fiscais e deixe a IA fazer o resto.
 
 ## 📑 **Apresentação do Projeto**
 🎨 **[Ver Apresentação Completa](https://gamma.app/docs/Despensa-5vig9ish7tg2toe)**
+
+---
+
+## 🚀 Como Instalar e Rodar o Projeto
+
+### Pré-requisitos
+
+Antes de começar, certifique-se de ter instalado:
+- **Node.js** (versão 18 ou superior) - [Download aqui](https://nodejs.org/)
+- **npm** ou **yarn** (geralmente vem com o Node.js)
+- **Git** - [Download aqui](https://git-scm.com/)
+
+### Passo 1: Clonar o Repositório
+
+```bash
+git clone https://github.com/bernardolobomarques/desponha.git
+cd desponha
+```
+
+### Passo 2: Instalar Dependências
+
+```bash
+npm install
+```
+
+Ou se preferir usar yarn:
+
+```bash
+yarn install
+```
+
+### Passo 3: Configurar Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto com suas chaves de API:
+
+```env
+# Supabase (obrigatório para autenticação e banco de dados)
+VITE_SUPABASE_URL=sua_url_do_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
+
+# APIs de OCR (pelo menos uma é obrigatória)
+VITE_OPENAI_API_KEY=sua_chave_openai
+VITE_GEMINI_API_KEY=sua_chave_gemini
+VITE_MISTRAL_API_KEY=sua_chave_mistral
+```
+
+#### Como obter as chaves:
+
+1. **Supabase** (necessário):
+   - Acesse [supabase.com](https://supabase.com)
+   - Crie um projeto gratuito
+   - Copie a URL e a chave anônima nas configurações do projeto
+
+2. **OpenAI** (recomendado):
+   - Acesse [platform.openai.com](https://platform.openai.com)
+   - Crie uma conta e gere uma API key
+
+3. **Google Gemini** (opcional):
+   - Acesse [ai.google.dev](https://ai.google.dev)
+   - Obtenha uma API key gratuita
+
+4. **Mistral AI** (opcional):
+   - Acesse [mistral.ai](https://mistral.ai)
+   - Crie uma conta e gere uma API key
+
+### Passo 4: Configurar Banco de Dados
+
+Execute os scripts SQL na seguinte ordem no Supabase SQL Editor:
+
+```bash
+# 1. Criar tabelas
+database/supabase-schema-v2.sql
+
+# 2. Popular com dados de exemplo (opcional)
+database/quick-seed.sql
+```
+
+### Passo 5: Rodar o Projeto
+
+```bash
+npm run dev
+```
+
+Ou com yarn:
+
+```bash
+yarn dev
+```
+
+O projeto estará rodando em: **http://localhost:5173**
+
+### 🎯 Comandos Disponíveis
+
+```bash
+# Rodar em modo de desenvolvimento
+npm run dev
+
+# Criar build de produção
+npm run build
+
+# Preview do build de produção
+npm run preview
+```
+
+### 📱 Usando a Aplicação
+
+1. **Primeiro acesso**: Na landing page, clique em "Começar Gratuitamente"
+2. **Criar conta**: Cadastre-se com email e senha
+3. **Confirmar email**: Verifique seu email (se configurado no Supabase)
+4. **Adicionar produtos**: 
+   - Clique no botão flutuante "+"
+   - Escolha entre fotografar nota fiscal ou adicionar manualmente
+   - Selecione o provedor de OCR (OpenAI, Gemini ou Mistral)
+5. **Gerenciar estoque**: Visualize, edite ou remova produtos da despensa
+6. **Lista de compras**: Acesse a aba "Compras" para ver sugestões automáticas
+
+### ⚠️ Possíveis Problemas
+
+**Erro ao processar nota fiscal:**
+- Verifique se as chaves de API estão corretas no `.env`
+- Certifique-se de que tem créditos nas APIs (OpenAI é paga)
+
+**Erro ao fazer login:**
+- Confirme que o Supabase está configurado corretamente
+- Verifique se executou os scripts SQL
+
+**Página em branco:**
+- Verifique o console do navegador (F12)
+- Certifique-se de que todas as dependências foram instaladas
+
+### 🛠️ Tecnologias Utilizadas
+
+- **React 18** + **TypeScript** - Frontend
+- **Tailwind CSS** - Estilização
+- **Vite** - Build tool
+- **Supabase** - Backend e autenticação
+- **OpenAI GPT-4 Vision** - OCR principal
+- **Google Gemini Vision** - OCR alternativo
+- **Mistral AI** - OCR especializado
 
 ---
 
